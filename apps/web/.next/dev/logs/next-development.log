@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 [00:00:02.747] Server  LOG     ✓ Ready in 2s
 [00:00:06.746] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
 [00:00:07.026] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
@@ -146,3 +147,6 @@ It can also happen if the client has a browser extension installed which messes 
 [01:22:42.246] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
 [01:22:53.963] Browser LOG     Onboarding answers: {"contributions":["testing","bugfixes"],"experience":"intermediate","goal":"portfolio","languages":["ruby","go","python"]}
 [01:24:01.254] Server  LOG     ✓ Compiled in 94ms
+=======
+[00:00:02.748] Server  LOG     ✓ Ready in 1872ms
+>>>>>>> 6d52eaa1e2b0fdc336c95ef981ae7fec338b5a97

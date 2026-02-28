@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
   "/(app)/analyze/page": "app/(app)/analyze/page.js",
   "/(app)/projects/page": "app/(app)/projects/page.js",
@@ -9,3 +10,6 @@
   "/projects/page": "app/projects/page.js",
   "/quests/page": "app/quests/page.js"
 }
+=======
+{}
+>>>>>>> 6d52eaa1e2b0fdc336c95ef981ae7fec338b5a97

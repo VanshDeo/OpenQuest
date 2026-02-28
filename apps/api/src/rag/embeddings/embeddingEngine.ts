@@ -18,9 +18,9 @@ export interface EmbeddingResult {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const GEMINI_BATCH_SIZE = 100;      // Gemini's max texts per embed request
-const GEMINI_EMBEDDING_MODEL = "text-embedding-004";
+const GEMINI_EMBEDDING_MODEL = "gemini-embedding-001";
 const GEMINI_EMBEDDING_DIM = 768;
-const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
+const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1";
 
 // Task type for code retrieval — tells Gemini what this embedding is for
 // RETRIEVAL_DOCUMENT = used when indexing, RETRIEVAL_QUERY = used when searching
@@ -129,6 +129,7 @@ async function callGeminiBatchEmbed(
         ],
       },
       taskType: TASK_TYPE_DOCUMENT,
+      outputDimensionality: 768,
     })),
   };
 

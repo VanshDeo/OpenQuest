@@ -10,8 +10,8 @@
  * Using the wrong task type degrades retrieval quality significantly.
  */
 
-const GEMINI_EMBEDDING_MODEL = "text-embedding-004";
-const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
+const GEMINI_EMBEDDING_MODEL = "gemini-embedding-001";
+const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1";
 const TASK_TYPE_QUERY = "RETRIEVAL_QUERY";
 
 export const GEMINI_EMBEDDING_DIM = 768;
@@ -44,6 +44,7 @@ async function embedQueryWithGemini(
       model: `models/${GEMINI_EMBEDDING_MODEL}`,
       content: { parts: [{ text: query }] },
       taskType: TASK_TYPE_QUERY,  // ← Critical: different from indexing task type
+      outputDimensionality: 768,
     }),
   });
 
