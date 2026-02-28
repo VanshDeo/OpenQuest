@@ -1,6 +1,6 @@
-# 🐙 git-master
+# 🌐 OpenQuest
 
-**git-master** is a GitHub-native code-intelligence & contribution accelerator. Paste any public repo URL and get an AI-powered, personalized "how to contribute" workflow — plus a code-aware RAG engine, one-click fork & clone, deterministic skill profiles for personalization, and an indexable code knowledge base for grounded question answering.
+**OpenQuest** is a GitHub-native code-intelligence & contribution accelerator. Paste any public repo URL and get an AI-powered, personalized "how to contribute" workflow — plus a code-aware RAG engine, one-click fork & clone, deterministic skill profiles for personalization, and an indexable code knowledge base for grounded question answering.
 
 ---
 
@@ -15,7 +15,7 @@
 
 ## 🏗️ Architecture Stack
 
-`git-master` is built as an `npm` workspace monorepo. It cleanly separation the UI and API layers while sharing canonical types.
+`OpenQuest` is built as an `npm` workspace monorepo. It cleanly separation the UI and API layers while sharing canonical types.
 
 ### **Frontend** (`apps/web`)
 - **Framework**: Next.js 14+ (App Router) with TypeScript
@@ -35,7 +35,7 @@
 ## 📂 Project Structure
 
 ```text
-git-master/
+OpenQuest/
 ├── .agent/                  # 🤖 AI Agent skills & configs (BACKEND, FRONTEND, RAG)
 ├── apps/
 │   ├── api/                 # 🧠 AI + RAG Backend Service (Express)
@@ -77,7 +77,7 @@ git-master/
 
 ## 🚀 Local Development Setup (Docker Compose)
 
-The easiest and recommended way to run `git-master` locally is via Docker Compose. This boots the Next.js frontend, Express API, PostgreSQL (with pgvector), Redis, and the background indexing worker simultaneously.
+The easiest and recommended way to run `OpenQuest` locally is via Docker Compose. This boots the Next.js frontend, Express API, PostgreSQL (with pgvector), Redis, and the background indexing worker simultaneously.
 
 ### Prerequisites
 
@@ -89,8 +89,8 @@ Ensure you have the following installed:
 Clone the repo:
 
 ```bash
-git clone https://github.com/your-username/git-master.git
-cd git-master
+git clone https://github.com/your-username/OpenQuest.git
+cd OpenQuest
 ```
 
 Create a root `.env` file containing your internal Docker networking endpoints:
@@ -103,7 +103,7 @@ REDIS_URL=redis://redis:6379
 # Express Server config (must match compose port mappings)
 PORT=3001
 NEXT_PUBLIC_API_URL=http://localhost:3001
-NEXT_PUBLIC_APP_NAME=git-master
+NEXT_PUBLIC_APP_NAME=OpenQuest
 
 # Local Dev Settings
 NODE_ENV=development
@@ -114,7 +114,7 @@ ALLOWED_ORIGINS=http://localhost:3000
 # API Keys (Provide real values locally)
 GEMINI_API_KEY=your_gemini_key_here
 PINECONE_API_KEY=your_pinecone_key_here
-PINECONE_INDEX=git-master-index
+PINECONE_INDEX=OpenQuest-index
 CACHE_TTL_SECONDS=3600
 
 # Auth
@@ -155,6 +155,6 @@ To prevent the UI from blocking, we use BullMQ on top of Redis running as a dedi
 ---
 
 ## 🔒 Security Notes
-- `git-master` requests minimal GitHub OAuth Scopes (primarily `public_repo`).
+- `OpenQuest` requests minimal GitHub OAuth Scopes (primarily `public_repo`).
 - User tokens are not exposed to the client; they are maintained securely on the server wrapper.
 - Heavy endpoints (like full repo ingestion) are rate-limited via Redis.
