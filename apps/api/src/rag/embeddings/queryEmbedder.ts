@@ -11,7 +11,7 @@
  */
 
 const GEMINI_EMBEDDING_MODEL = "gemini-embedding-001";
-const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1";
+const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 const TASK_TYPE_QUERY = "RETRIEVAL_QUERY";
 
 export const GEMINI_EMBEDDING_DIM = 768;
@@ -35,11 +35,14 @@ async function embedQueryWithGemini(
   query: string,
   apiKey: string
 ): Promise<number[]> {
-  const url = `${GEMINI_API_BASE}/models/${GEMINI_EMBEDDING_MODEL}:embedContent?key=${apiKey}`;
+  const url = `${GEMINI_API_BASE}/models/${GEMINI_EMBEDDING_MODEL}:embedContent`;
 
   const response = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+  headers: {
+    "Content-Type": "application/json",
+    "x-goog-api-key": apiKey,
+  },
     body: JSON.stringify({
       model: `models/${GEMINI_EMBEDDING_MODEL}`,
       content: { parts: [{ text: query }] },

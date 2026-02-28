@@ -20,7 +20,7 @@ export interface EmbeddingResult {
 const GEMINI_BATCH_SIZE = 100;      // Gemini's max texts per embed request
 const GEMINI_EMBEDDING_MODEL = "gemini-embedding-001";
 const GEMINI_EMBEDDING_DIM = 768;
-const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1";
+const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
 // Task type for code retrieval — tells Gemini what this embedding is for
 // RETRIEVAL_DOCUMENT = used when indexing, RETRIEVAL_QUERY = used when searching
@@ -115,7 +115,7 @@ async function callGeminiBatchEmbed(
   chunks: CodeChunk[],
   apiKey: string
 ): Promise<number[][]> {
-  const url = `${GEMINI_API_BASE}/models/${GEMINI_EMBEDDING_MODEL}:batchEmbedContents?key=${apiKey}`;
+  const url = `${GEMINI_API_BASE}/models/${GEMINI_EMBEDDING_MODEL}:batchEmbedContents`;
 
   const requestBody = {
     requests: chunks.map((chunk) => ({
@@ -134,10 +134,13 @@ async function callGeminiBatchEmbed(
   };
 
   const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(requestBody),
-  });
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "x-goog-api-key": apiKey,  
+  },
+  body: JSON.stringify(requestBody),
+});
 
   if (!response.ok) {
     const errorText = await response.text();
