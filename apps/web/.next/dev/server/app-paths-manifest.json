@@ -1,8 +1,0 @@
-{
-  "/(app)/analyze/page": "app/(app)/analyze/page.js",
-  "/(app)/leaderboard/page": "app/(app)/leaderboard/page.js",
-  "/(app)/profile/page": "app/(app)/profile/page.js",
-  "/(app)/projects/page": "app/(app)/projects/page.js",
-  "/onboarding/page": "app/onboarding/page.js",
-  "/page": "app/page.js"
-}
