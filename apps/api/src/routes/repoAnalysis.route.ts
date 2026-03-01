@@ -2,6 +2,144 @@ import { Router, Request, Response } from "express";
 import { Octokit } from "@octokit/rest";
 import { parseGitHubUrl } from "../rag/ingestion/githubFetcher";
 import { config } from "../config/env";
+import path from "path";
+
+/* ── Ignored paths map for filtering tree ── */
+const IGNORED = new Set([
+    "node_modules", ".git", "dist", "build", ".next", "__pycache__",
+    "vendor", ".vscode", ".idea", "coverage", ".cache", ".turbo",
+    "target", "bin", "obj", ".husky",
+]);
+
+function shouldIgnore(filePath: string): boolean {
+    return filePath.split("/").some(part => IGNORED.has(part));
+}
+
+/* ── Supported text extensions ── */
+const TEXT_EXTS = new Set([
+    ".ts", ".tsx", ".js", ".jsx", ".py", ".go", ".rs", ".java",
+    ".rb", ".php", ".swift", ".kt", ".c", ".cpp", ".cs", ".vue",
+    ".svelte", ".html", ".css", ".scss", ".sql", ".sh", ".md", ".json", ".toml", ".yaml", ".yml"
+]);
+
+function isTextFile(filePath: string): boolean {
+    return TEXT_EXTS.has(path.extname(filePath).toLowerCase()) || filePath.toLowerCase().includes("doc") || filePath.toLowerCase().includes("file");
+}
+
+/* ── Deep analysis with Gemini ── */
+async function generateDeepAnalysis(
+    octokit: Octokit,
+    owner: string,
+    repo: string,
+    defaultBranch: string,
+    githubDescription: string,
+    difficultyScore: number,
+    communityHealthScore: number,
+    recentContributors: number
+): Promise<{ customReadme: string; setupGuide: string; contributionGuide: string; difficultyExplanation: string; healthExplanation: string }> {
+    try {
+        // Fetch the file tree to understand the structure
+        const { data: treeData } = await octokit.git.getTree({
+            owner,
+            repo,
+            tree_sha: defaultBranch,
+            recursive: "1",
+        });
+
+        const files = (treeData.tree || [])
+            .filter((item): item is any => item.type === "blob" && !!item.path && !shouldIgnore(item.path) && isTextFile(item.path));
+
+        const filePaths = files.map(f => f.path).slice(0, 100).join("\n");
+        const fileCount = files.length;
+
+        // Try to fetch key files content specifically
+        let keyContents = "";
+        const keyFilesToFetch = ["package.json", "pyproject.toml", "Cargo.toml", "go.mod", "docker-compose.yml", "Dockerfile"];
+        for (const file of files) {
+            const fileName = file.path.split("/").pop() || "";
+            if (keyFilesToFetch.includes(fileName.toLowerCase())) {
+                try {
+                    const { data } = await octokit.repos.getContent({
+                        owner,
+                        repo,
+                        path: file.path,
+                        ref: defaultBranch,
+                    });
+                    if ("content" in data) {
+                        const decodedVal = Buffer.from(data.content, "base64").toString("utf-8");
+                        keyContents += `\n--- ${file.path} ---\n${decodedVal.slice(0, 800)}\n`;
+                    }
+                } catch { /* ignore */ }
+            }
+        }
+
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) throw new Error("GEMINI_API_KEY not found");
+
+        const prompt = `You are a senior technical writer analyzing a GitHub repository.
+Repository: ${owner}/${repo}
+GitHub Description: ${githubDescription || "No description provided"}
+Total Text Files Found: ${fileCount}
+Static Difficulty Score: ${difficultyScore}/100
+Community Health Score: ${communityHealthScore}/100
+Recent Contributors: ${recentContributors}
+
+File Structure (Top 100 files):
+${filePaths}
+
+Key Configuration Files (if available):
+${keyContents}
+
+Analyze the structure and provided files to infer exactly what this project does, how to set it up, and how someone could contribute. 
+
+Return ONLY a valid JSON object holding these distinct and detailed sections formatted in Markdown (except for the explanations).
+Respond strictly with valid JSON. Do not use Markdown wrapping for the final JSON block.
+FORMAT:
+{
+  "customReadme": "A custom README explaining the project's purpose...",
+  "setupGuide": "Step-by-step instructions...",
+  "contributionGuide": "A short guide on how to contribute...",
+  "difficultyExplanation": "A precise 1-sentence explanation of WHY the specific contribution difficulty and score makes sense for this codebase (e.g. 'Requires advanced knowledge of Rust, WebGL, and custom shaders' or 'Simple static site with standard HTML/CSS'). Do not just restate the generic size/age metrics.",
+  "healthExplanation": "A precise 1-sentence assessment of the project's health, incorporating the health score, recent contributors, and presence of contribution guides."
+}`;
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
+        const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { temperature: 0.2, maxOutputTokens: 2000 },
+            }),
+        });
+
+        if (!res.ok) throw new Error(`Gemini API error: ${res.statusText}`);
+
+        const data = await res.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) throw new Error("No response from Gemini");
+
+        const jsonStr = text.replace(/```json?\n?/g, "").replace(/```/g, "").trim();
+        const parsed = JSON.parse(jsonStr);
+
+        return {
+            customReadme: parsed.customReadme || githubDescription,
+            setupGuide: parsed.setupGuide || "Setup instructions could not be automatically determined.",
+            contributionGuide: parsed.contributionGuide || "Please check the repository for contributing guidelines.",
+            difficultyExplanation: parsed.difficultyExplanation || "Based on codebase size, age, and contributor count",
+            healthExplanation: parsed.healthExplanation || "Calculated from recent activity, contributor count, and community files.",
+        };
+    } catch (e: any) {
+        console.warn("[RepoAnalysis] Deep analysis failed, falling back to basic data:", e.message);
+        return {
+            customReadme: githubDescription || "No description provided.",
+            setupGuide: "Setup instructions could not be automatically determined.",
+            contributionGuide: "Please check the repository for contributing guidelines.",
+            difficultyExplanation: "Based on codebase size, age, and contributor count",
+            healthExplanation: "Calculated from recent activity, contributor count, and community files.",
+        };
+    }
+}
 
 export function createRepoAnalysisRouter(): Router {
     const router = Router();
@@ -71,6 +209,11 @@ export function createRepoAnalysisRouter(): Router {
                 }))
                 .sort((a, b) => b.bytes - a.bytes);
 
+            // Fetch deep analysis using Gemini
+            const defaultBranch = r.default_branch || "main";
+            const githubDesc = r.description ?? "No description provided.";
+            const aiAnalysis = await generateDeepAnalysis(octokit, owner, repo, defaultBranch, githubDesc, difficultyScore, communityHealth.score, recentContribs);
+
             return res.json({
                 repoId: `${owner}/${repo}`,
                 name: r.name,
@@ -82,7 +225,11 @@ export function createRepoAnalysisRouter(): Router {
                 contributorCount: contribCount,
                 techStack,
                 languages: languageBreakdown,
-                purpose: r.description ?? "No description provided.",
+                purpose: aiAnalysis.customReadme,
+                setupGuide: aiAnalysis.setupGuide,
+                contributionGuide: aiAnalysis.contributionGuide,
+                difficultyExplanation: aiAnalysis.difficultyExplanation,
+                healthExplanation: aiAnalysis.healthExplanation,
                 difficultyScore,
                 difficultyLabel: getDifficultyLabel(difficultyScore),
                 communityHealth,

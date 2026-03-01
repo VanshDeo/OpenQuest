@@ -14,6 +14,10 @@ export interface RepoAnalysis {
     techStack: string[];
     languages: { name: string; bytes: number; percentage: number }[];
     purpose: string;
+    setupGuide: string;
+    contributionGuide: string;
+    difficultyExplanation?: string;
+    healthExplanation?: string;
     difficultyScore: number;
     difficultyLabel: "Beginner" | "Intermediate" | "Advanced" | "Expert";
     communityHealth: {

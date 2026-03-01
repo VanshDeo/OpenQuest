@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
     Search,
     Zap,
@@ -239,12 +242,42 @@ export default function AnalyzePage() {
                             </Card>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Purpose */}
-                                <Card className="bg-[#121212] border-white/5 p-6 hover:border-orange-500/20 hover:scale-[1.02] duration-300 transition-all">
+                                {/* Detailed Analysis (Custom README etc) */}
+                                <Card className="bg-[#121212] border-white/5 p-6 md:col-span-2">
                                     <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
-                                        <Brain className="w-4 h-4 text-orange-400" /> Purpose
+                                        <Brain className="w-4 h-4 text-orange-400" /> Deep Repository Analysis
                                     </h3>
-                                    <p className="text-slate-400 text-sm leading-relaxed">{analysis.purpose}</p>
+                                    <Tabs defaultValue="readme" className="w-full">
+                                        <TabsList className="bg-white/5 border border-white/10 text-slate-400 mb-4 h-auto p-1">
+                                            <TabsTrigger value="readme" className="data-[state=active]:bg-[#1a1a1a] data-[state=active]:text-orange-400 rounded-md py-1.5 text-xs">Custom README</TabsTrigger>
+                                            <TabsTrigger value="setup" className="data-[state=active]:bg-[#1a1a1a] data-[state=active]:text-orange-400 rounded-md py-1.5 text-xs">Setup Guide</TabsTrigger>
+                                            <TabsTrigger value="contribute" className="data-[state=active]:bg-[#1a1a1a] data-[state=active]:text-orange-400 rounded-md py-1.5 text-xs">Contribution Guide</TabsTrigger>
+                                        </TabsList>
+
+                                        <TabsContent value="readme" className="mt-0 outline-none">
+                                            <div className="prose prose-invert prose-sm max-w-none prose-a:text-orange-400 prose-headings:text-slate-200 prose-p:text-slate-400 prose-li:text-slate-400 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                    {analysis.purpose || "No custom README generated."}
+                                                </ReactMarkdown>
+                                            </div>
+                                        </TabsContent>
+
+                                        <TabsContent value="setup" className="mt-0 outline-none">
+                                            <div className="prose prose-invert prose-sm max-w-none prose-a:text-orange-400 prose-headings:text-slate-200 prose-p:text-slate-400 prose-li:text-slate-400 prose-pre:bg-black/50 prose-pre:border prose-pre:border-white/10 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                    {analysis.setupGuide || "No setup guide generated."}
+                                                </ReactMarkdown>
+                                            </div>
+                                        </TabsContent>
+
+                                        <TabsContent value="contribute" className="mt-0 outline-none">
+                                            <div className="prose prose-invert prose-sm max-w-none prose-a:text-orange-400 prose-headings:text-slate-200 prose-p:text-slate-400 prose-li:text-slate-400 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                    {analysis.contributionGuide || "No contribution guide generated."}
+                                                </ReactMarkdown>
+                                            </div>
+                                        </TabsContent>
+                                    </Tabs>
                                 </Card>
 
                                 {/* Tech Stack */}
@@ -340,8 +373,8 @@ export default function AnalyzePage() {
                                         </div>
                                         <div>
                                             <p className="text-white font-semibold">{analysis.communityHealth.label}</p>
-                                            <p className="text-xs text-slate-500">
-                                                {analysis.communityHealth.recentContributors} contributors in last 30 days
+                                            <p className="text-xs text-slate-500 leading-relaxed pr-2">
+                                                {analysis.healthExplanation || `${analysis.communityHealth.recentContributors} contributors in last 30 days`}
                                             </p>
                                         </div>
                                     </div>
@@ -371,11 +404,11 @@ export default function AnalyzePage() {
                                         <span className="text-2xl font-bold text-orange-400">{analysis.difficultyScore}/100</span>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <Badge className={`border ${diffColorMap[getDiffColor(analysis.difficultyLabel)]}`}>
+                                        <Badge className={`border whitespace-nowrap ${diffColorMap[getDiffColor(analysis.difficultyLabel)]}`}>
                                             {analysis.difficultyLabel}
                                         </Badge>
-                                        <span className="text-xs text-slate-500">
-                                            Based on codebase size, age, and contributor count
+                                        <span className="text-xs text-slate-500 leading-relaxed">
+                                            {analysis.difficultyExplanation || "Based on codebase size, age, and contributor count"}
                                         </span>
                                     </div>
                                 </Card>
