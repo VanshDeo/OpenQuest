@@ -373,8 +373,8 @@ export default function AnalyzePage() {
                                         </div>
                                         <div>
                                             <p className="text-white font-semibold">{analysis.communityHealth.label}</p>
-                                            <p className="text-xs text-slate-500 leading-relaxed pr-2">
-                                                {analysis.healthExplanation || `${analysis.communityHealth.recentContributors} contributors in last 30 days`}
+                                            <p className="text-xs text-slate-500 pr-2">
+                                                {analysis.communityHealth.recentContributors} contributors in last 30 days
                                             </p>
                                         </div>
                                     </div>
@@ -403,13 +403,35 @@ export default function AnalyzePage() {
                                         <Progress value={analysis.difficultyScore} className="flex-1 h-3" />
                                         <span className="text-2xl font-bold text-orange-400">{analysis.difficultyScore}/100</span>
                                     </div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 mb-4">
                                         <Badge className={`border whitespace-nowrap ${diffColorMap[getDiffColor(analysis.difficultyLabel)]}`}>
                                             {analysis.difficultyLabel}
                                         </Badge>
-                                        <span className="text-xs text-slate-500 leading-relaxed">
-                                            {analysis.difficultyExplanation || "Based on codebase size, age, and contributor count"}
+                                        <span className="text-xs text-slate-500">
+                                            Difficulty based on historical metrics
                                         </span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] uppercase tracking-wider text-slate-500">Codebase Size</span>
+                                            <span className="text-sm font-medium text-slate-200">{formatBytes(analysis.codebaseSize)}</span>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] uppercase tracking-wider text-slate-500">Contributors</span>
+                                            <span className="text-sm font-medium text-slate-200">{analysis.contributorCount}</span>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] uppercase tracking-wider text-slate-500">Project Age</span>
+                                            <span className="text-sm font-medium text-slate-200">
+                                                {analysis.createdAt ? Math.round((Date.now() - new Date(analysis.createdAt).getTime()) / (1000 * 60 * 60 * 24 * 365) * 10) / 10 : 0} yrs
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] uppercase tracking-wider text-slate-500">Language Limit</span>
+                                            <span className="text-sm font-medium text-slate-200">
+                                                {analysis.languages.length} detected
+                                            </span>
+                                        </div>
                                     </div>
                                 </Card>
                             </div>

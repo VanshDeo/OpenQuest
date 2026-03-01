@@ -20,6 +20,12 @@ interface AuthUser {
         accountAgeYears: number;
         languageStats: Record<string, number>;
     } | null;
+    preferences: {
+        experienceLevel: string;
+        preferredLanguages: string[];
+        contributionTypes: string[];
+        goal: string | null;
+    } | null;
 }
 
 export default function TopNavbar() {
@@ -46,6 +52,11 @@ export default function TopNavbar() {
             const data = await response.json();
             if (data.authenticated) {
                 setUser(data.user);
+
+                // If the user has no preferences, redirect to the onboarding flow
+                if (!data.user.preferences && window.location.pathname !== "/onboarding") {
+                    window.location.href = "/onboarding";
+                }
             }
         } catch (error) {
             console.error("Auth check failed:", error);

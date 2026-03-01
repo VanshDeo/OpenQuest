@@ -102,7 +102,10 @@ passport.deserializeUser(async (id: string, done: Function) => {
     try {
         const user = await prisma.user.findUnique({
             where: { id },
-            include: { skillProfile: true },
+            include: {
+                skillProfile: true,
+                preferences: true,
+            },
         });
         done(null, user);
     } catch (err) {

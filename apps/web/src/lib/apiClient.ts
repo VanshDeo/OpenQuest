@@ -16,10 +16,10 @@ export interface RepoAnalysis {
     purpose: string;
     setupGuide: string;
     contributionGuide: string;
-    difficultyExplanation?: string;
-    healthExplanation?: string;
     difficultyScore: number;
     difficultyLabel: "Beginner" | "Intermediate" | "Advanced" | "Expert";
+    codebaseSize: number;
+    createdAt: string;
     communityHealth: {
         score: number;
         label: string;

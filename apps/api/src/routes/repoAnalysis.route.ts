@@ -32,11 +32,8 @@ async function generateDeepAnalysis(
     owner: string,
     repo: string,
     defaultBranch: string,
-    githubDescription: string,
-    difficultyScore: number,
-    communityHealthScore: number,
-    recentContributors: number
-): Promise<{ customReadme: string; setupGuide: string; contributionGuide: string; difficultyExplanation: string; healthExplanation: string }> {
+    githubDescription: string
+): Promise<{ customReadme: string; setupGuide: string; contributionGuide: string }> {
     try {
         // Fetch the file tree to understand the structure
         const { data: treeData } = await octokit.git.getTree({
@@ -80,9 +77,6 @@ async function generateDeepAnalysis(
 Repository: ${owner}/${repo}
 GitHub Description: ${githubDescription || "No description provided"}
 Total Text Files Found: ${fileCount}
-Static Difficulty Score: ${difficultyScore}/100
-Community Health Score: ${communityHealthScore}/100
-Recent Contributors: ${recentContributors}
 
 File Structure (Top 100 files):
 ${filePaths}
@@ -92,15 +86,13 @@ ${keyContents}
 
 Analyze the structure and provided files to infer exactly what this project does, how to set it up, and how someone could contribute. 
 
-Return ONLY a valid JSON object holding these distinct and detailed sections formatted in Markdown (except for the explanations).
+Return ONLY a valid JSON object holding three distinct and detailed sections formatted in Markdown.
 Respond strictly with valid JSON. Do not use Markdown wrapping for the final JSON block.
 FORMAT:
 {
   "customReadme": "A custom README explaining the project's purpose...",
   "setupGuide": "Step-by-step instructions...",
-  "contributionGuide": "A short guide on how to contribute...",
-  "difficultyExplanation": "A precise 1-sentence explanation of WHY the specific contribution difficulty and score makes sense for this codebase (e.g. 'Requires advanced knowledge of Rust, WebGL, and custom shaders' or 'Simple static site with standard HTML/CSS'). Do not just restate the generic size/age metrics.",
-  "healthExplanation": "A precise 1-sentence assessment of the project's health, incorporating the health score, recent contributors, and presence of contribution guides."
+  "contributionGuide": "A short guide on how to contribute..."
 }`;
 
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
@@ -126,8 +118,6 @@ FORMAT:
             customReadme: parsed.customReadme || githubDescription,
             setupGuide: parsed.setupGuide || "Setup instructions could not be automatically determined.",
             contributionGuide: parsed.contributionGuide || "Please check the repository for contributing guidelines.",
-            difficultyExplanation: parsed.difficultyExplanation || "Based on codebase size, age, and contributor count",
-            healthExplanation: parsed.healthExplanation || "Calculated from recent activity, contributor count, and community files.",
         };
     } catch (e: any) {
         console.warn("[RepoAnalysis] Deep analysis failed, falling back to basic data:", e.message);
@@ -135,8 +125,6 @@ FORMAT:
             customReadme: githubDescription || "No description provided.",
             setupGuide: "Setup instructions could not be automatically determined.",
             contributionGuide: "Please check the repository for contributing guidelines.",
-            difficultyExplanation: "Based on codebase size, age, and contributor count",
-            healthExplanation: "Calculated from recent activity, contributor count, and community files.",
         };
     }
 }
@@ -212,7 +200,7 @@ export function createRepoAnalysisRouter(): Router {
             // Fetch deep analysis using Gemini
             const defaultBranch = r.default_branch || "main";
             const githubDesc = r.description ?? "No description provided.";
-            const aiAnalysis = await generateDeepAnalysis(octokit, owner, repo, defaultBranch, githubDesc, difficultyScore, communityHealth.score, recentContribs);
+            const aiAnalysis = await generateDeepAnalysis(octokit, owner, repo, defaultBranch, githubDesc);
 
             return res.json({
                 repoId: `${owner}/${repo}`,
@@ -228,10 +216,10 @@ export function createRepoAnalysisRouter(): Router {
                 purpose: aiAnalysis.customReadme,
                 setupGuide: aiAnalysis.setupGuide,
                 contributionGuide: aiAnalysis.contributionGuide,
-                difficultyExplanation: aiAnalysis.difficultyExplanation,
-                healthExplanation: aiAnalysis.healthExplanation,
                 difficultyScore,
                 difficultyLabel: getDifficultyLabel(difficultyScore),
+                codebaseSize: (r.size || 0) * 1024,
+                createdAt: r.created_at,
                 communityHealth,
                 defaultBranch: r.default_branch,
             });

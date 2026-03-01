@@ -16,9 +16,17 @@ authRouter.get(
     passport.authenticate("github", {
         failureRedirect: `${config.FRONTEND_URL}?error=auth_failed`,
     }),
-    (_req, res) => {
-        // Successful authentication → redirect to frontend
-        res.redirect(`${config.FRONTEND_URL}?login=success`);
+    (req, res) => {
+        // Successful authentication → explicitly save session before redirect
+        req.session.save((err) => {
+            if (err) {
+                console.error("Session save error:", err);
+                return res.redirect(`${config.FRONTEND_URL}?error=session_error`);
+            }
+            const redirectUrl = new URL('/projects', config.FRONTEND_URL);
+            redirectUrl.searchParams.set('login', 'success');
+            res.redirect(redirectUrl.toString());
+        });
     }
 );
 
@@ -42,6 +50,14 @@ authRouter.get("/status", (req, res) => {
                         contributionCount: user.skillProfile.contributionCount,
                         accountAgeYears: user.skillProfile.accountAgeYears,
                         languageStats: user.skillProfile.languageStats,
+                    }
+                    : null,
+                preferences: user.preferences
+                    ? {
+                        experienceLevel: user.preferences.experienceLevel,
+                        preferredLanguages: user.preferences.preferredLanguages,
+                        contributionTypes: user.preferences.contributionTypes,
+                        goal: user.preferences.goal,
                     }
                     : null,
             },
