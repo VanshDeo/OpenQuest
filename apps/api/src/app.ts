@@ -7,6 +7,8 @@ import passport from './config/passport';
 import { authRouter } from './routes/auth';
 import { userRouter } from './routes/user.route';
 import { aiRouter } from './routes/ai.route';
+import { createRepoAnalysisRouter } from './routes/repoAnalysis.route';
+import { createQuestsRouter } from './routes/quests.route';
 import { config } from './config/env';
 
 const app = express();
@@ -40,6 +42,8 @@ app.use(passport.session());
 app.use('/api/auth', authRouter);
 app.use('/api/user', userRouter);
 app.use('/api/ai', aiRouter);
+app.use('/api/repo', createRepoAnalysisRouter());
+app.use('/api/repo', createQuestsRouter());
 
 app.get('/health', (_, res) => res.json({ status: 'ok', uptime: process.uptime() }));
 

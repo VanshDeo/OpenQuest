@@ -10,6 +10,7 @@ const schema = z.object({
     JWT_SECRET: z.string().default('dev_secret_git_master'),
     JWT_EXPIRY: z.string().default('7d'),
     ALLOWED_ORIGINS: z.string().default('http://localhost:3000'),
+    GITHUB_TOKEN: z.string().optional(),
     GEMINI_API_KEY: z.string().optional(),
     PINECONE_API_KEY: z.string().optional(),
     PINECONE_INDEX: z.string().default('OpenQuest-index'),

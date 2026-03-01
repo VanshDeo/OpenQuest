@@ -20,6 +20,7 @@ import {
     Github,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { setUserLevel } from "@/lib/apiClient";
 
 const STEPS = [
     "welcome",
@@ -142,6 +143,9 @@ export default function OnboardingPage() {
     };
 
     const handleComplete = async () => {
+        // Store user level in localStorage for quest difficulty adaptation
+        setUserLevel(answers.experience);
+
         try {
             const res = await fetch("http://localhost:8000/api/user/preferences", {
                 method: "POST",

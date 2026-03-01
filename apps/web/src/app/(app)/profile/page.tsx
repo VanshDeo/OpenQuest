@@ -44,7 +44,7 @@ function getCurrentLevel(xp: number) {
 interface StatItem {
     label: string;
     value: string;
-    icon: React.ComponentType<{ className?: string }>;
+    icon: any;
     color: string;
 }
 
