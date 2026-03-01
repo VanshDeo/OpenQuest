@@ -3,7 +3,7 @@ import { useState, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
-import { Network, BarChart3, AlertTriangle, Layers, FolderTree } from "lucide-react";
+import { Network, BarChart3, AlertTriangle, Layers, FolderTree, Maximize, Minimize } from "lucide-react";
 import type { ArchGraph, ArchNode } from "@/types/ArchGraphTypes";
 import { LAYER_COLORS } from "@/types/ArchGraphTypes";
 import NodeDetailPanel from "./NodeDetailPanel";
@@ -28,6 +28,7 @@ const layerLabelMap: Record<string, string> = {
 export default function ArchVisualization({ graph }: { graph: ArchGraph }) {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [hoveredId, setHoveredId] = useState<string | null>(null);
+    const [isFullscreen, setIsFullscreen] = useState(false);
     const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => {
         // Initialize with defaultExpanded nodes
         const initial = new Set<string>();
@@ -97,7 +98,9 @@ export default function ArchVisualization({ graph }: { graph: ArchGraph }) {
     const expandedCount = expandedNodes.size;
 
     return (
-        <div className="relative rounded-2xl bg-[#0a0a0a] border border-white/5 overflow-hidden">
+        <div className={isFullscreen
+            ? "fixed inset-0 z-50 bg-[#0a0a0a] flex flex-col"
+            : "relative rounded-2xl bg-[#0a0a0a] border border-white/5 overflow-hidden"}>
             {/* ── Top bar ── */}
             <div className="flex items-center justify-between px-5 py-3 border-b border-white/5 bg-white/[0.02]">
                 <div className="flex items-center gap-3">
@@ -119,11 +122,18 @@ export default function ArchVisualization({ graph }: { graph: ArchGraph }) {
                     <span className="text-orange-400 font-semibold">
                         {(graph.metadata.analysisConfidence * 100).toFixed(0)}% confidence
                     </span>
+                    <button
+                        onClick={() => setIsFullscreen(!isFullscreen)}
+                        className="p-1 hover:bg-white/10 rounded-md transition-colors text-slate-400 hover:text-white ml-2"
+                        title={isFullscreen ? "Minimize" : "Expand Fullscreen"}
+                    >
+                        {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+                    </button>
                 </div>
             </div>
 
             {/* ── Canvas + Panel ── */}
-            <div className="relative" style={{ height: "560px" }}>
+            <div className="relative flex-1" style={{ height: isFullscreen ? "100%" : "560px" }}>
                 <ArchGraph3D
                     graph={graph}
                     visibleNodes={visibleNodes}

@@ -273,6 +273,52 @@ function Background() {
     return null;
 }
 
+// ─── Camera Animator ───
+function CameraAnimator({
+    selectedId,
+    positions,
+}: {
+    selectedId: string | null;
+    positions: Map<string, [number, number, number]>;
+}) {
+    const controlsRef = useRef<any>(null);
+    const targetVector = useRef(new THREE.Vector3(0, 0, 0));
+
+    useFrame((state, delta) => {
+        if (selectedId) {
+            const pos = positions.get(selectedId);
+            if (pos) {
+                // Offset the focus point slightly to the right, which pushes the graph to the left
+                // so it doesn't get covered by the right-side detail panel.
+                targetVector.current.set(pos[0] + 2.0, pos[1], pos[2]);
+            }
+        } else {
+            // When panel is closed, slowly drift focus back to the center of the graph
+            targetVector.current.lerp(new THREE.Vector3(0, 0, 0), delta * 2);
+        }
+
+        if (controlsRef.current) {
+            controlsRef.current.target.lerp(targetVector.current, delta * 3.5);
+            controlsRef.current.update();
+        }
+    });
+
+    return (
+        <OrbitControls
+            ref={controlsRef}
+            enablePan={true}
+            enableZoom={true}
+            enableRotate={true}
+            autoRotate={false}
+            panSpeed={1.5}
+            rotateSpeed={0.8}
+            maxDistance={25}
+            minDistance={4}
+            makeDefault
+        />
+    );
+}
+
 // ─── Scene ───
 function Scene({
     graph,
@@ -346,16 +392,7 @@ function Scene({
                 );
             })}
 
-            <OrbitControls
-                enablePan
-                enableZoom
-                enableRotate
-                autoRotate
-                autoRotateSpeed={0.25}
-                maxDistance={25}
-                minDistance={4}
-                makeDefault
-            />
+            <CameraAnimator selectedId={selectedId} positions={positions} />
         </>
     );
 }

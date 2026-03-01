@@ -16,11 +16,12 @@ export function createRepoAnalysisRouter(): Router {
             const octokit = new Octokit({ auth: config.GITHUB_TOKEN });
 
             // Fetch in parallel
-            const [repoData, contributors, commits, communityProfile] = await Promise.allSettled([
+            const [repoData, contributors, commits, communityProfile, languages] = await Promise.allSettled([
                 octokit.repos.get({ owner, repo }),
                 octokit.repos.listContributors({ owner, repo, per_page: 100 }),
                 octokit.repos.listCommits({ owner, repo, per_page: 30 }),
                 octokit.repos.getCommunityProfileMetrics({ owner, repo }),
+                octokit.repos.listLanguages({ owner, repo }),
             ]);
 
             const r = repoData.status === "fulfilled" ? repoData.value.data : null;
@@ -59,6 +60,17 @@ export function createRepoAnalysisRouter(): Router {
             const techStack = detectTechStack(r.language, (r as any).topics ?? []);
             const difficultyScore = computeDifficultyScore(r, contribCount);
 
+            // Build language breakdown with percentages
+            const langData = languages.status === "fulfilled" ? languages.value.data as Record<string, number> : {};
+            const totalBytes = Object.values(langData).reduce((a, b) => a + b, 0);
+            const languageBreakdown = Object.entries(langData)
+                .map(([name, bytes]) => ({
+                    name,
+                    bytes,
+                    percentage: totalBytes > 0 ? Math.round((bytes / totalBytes) * 1000) / 10 : 0,
+                }))
+                .sort((a, b) => b.bytes - a.bytes);
+
             return res.json({
                 repoId: `${owner}/${repo}`,
                 name: r.name,
@@ -69,6 +81,7 @@ export function createRepoAnalysisRouter(): Router {
                 openIssues: r.open_issues_count,
                 contributorCount: contribCount,
                 techStack,
+                languages: languageBreakdown,
                 purpose: r.description ?? "No description provided.",
                 difficultyScore,
                 difficultyLabel: getDifficultyLabel(difficultyScore),

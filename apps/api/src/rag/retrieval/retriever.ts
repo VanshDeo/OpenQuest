@@ -115,7 +115,7 @@ export async function retrieve(
 
 // ─── Vector Search ────────────────────────────────────────────────────────────
 
-interface RawCandidate {
+export interface RawCandidate {
     id: string;
     filePath: string;
     language: string;
@@ -126,7 +126,7 @@ interface RawCandidate {
     vectorScore: number;
 }
 
-async function vectorSearch(
+export async function vectorSearch(
     queryVector: number[],
     repoId: string,
     limit: number,
@@ -189,7 +189,7 @@ async function vectorSearch(
  *   Boost is capped per file to prevent one large file dominating.
  *   Final sort is by boosted score descending, then take top-K.
  */
-function rerankByFileProximity(
+export function rerankByFileProximity(
     candidates: RawCandidate[],
     topK: number
 ): RetrievedChunk[] {

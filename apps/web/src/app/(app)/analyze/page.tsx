@@ -1,10 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ArchVisualization from "@/components/visualization/ArchVisualization";
 import { sampleGraph } from "@/data/sampleGraph";
+import { analyzeRepository, type RepoAnalysis, getArchitecture, indexRepository, getIndexStatus } from "@/lib/apiClient";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -23,7 +25,7 @@ import {
     ExternalLink,
     AlertCircle,
 } from "lucide-react";
-import { analyzeRepository, type RepoAnalysis } from "@/lib/apiClient";
+import RAGPipelineView from "@/components/rag/RAGPipelineView";
 
 const diffColorMap: Record<string, string> = {
     green: "bg-green-500/10 text-green-400 border-green-500/20",
@@ -56,26 +58,65 @@ function formatNumber(n: number): string {
     return String(n);
 }
 
+function formatBytes(bytes: number): string {
+    if (bytes >= 1048576) return `${(bytes / 1048576).toFixed(1)} MB`;
+    if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${bytes} B`;
+}
+
+const LANG_COLORS: Record<string, string> = {
+    TypeScript: "#3178C6", JavaScript: "#F7DF1E", Python: "#3572A5",
+    Java: "#B07219", Go: "#00ADD8", Rust: "#DEA584",
+    Ruby: "#701516", "C++": "#F34B7D", C: "#555555",
+    "C#": "#178600", PHP: "#4F5D95", Swift: "#F05138",
+    Kotlin: "#A97BFF", Dart: "#00B4AB", Shell: "#89E051",
+    HTML: "#E34C26", CSS: "#563D7C", SCSS: "#C6538C",
+    Vue: "#41B883", Svelte: "#FF3E00", Lua: "#000080",
+    Haskell: "#5E5086", Elixir: "#6E4A7E", Scala: "#DC322F",
+    R: "#198CE7", Makefile: "#427819", Dockerfile: "#384D54",
+    Nix: "#7E7EFF",
+};
+
+function getLangColor(name: string): string {
+    return LANG_COLORS[name] || `hsl(${name.length * 47 % 360}, 60%, 55%)`;
+}
+
 export default function AnalyzePage() {
     const [url, setUrl] = useState("");
     const [analysis, setAnalysis] = useState<RepoAnalysis | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [archGraph, setArchGraph] = useState<any>(null);
+    const [archLoading, setArchLoading] = useState(false);
 
     const handleAnalyze = async () => {
         if (!url) return;
         setLoading(true);
         setError(null);
         setAnalysis(null);
+        setArchGraph(null);
+        setArchLoading(false);
+
         try {
             const data = await analyzeRepository(url);
             setAnalysis(data);
+
+            // Fetch live architecture graph directly (uses GitHub API, no indexing needed)
+            setArchLoading(true);
+            getArchitecture(data.fullName)
+                .then((graph) => setArchGraph(graph))
+                .catch((err) => {
+                    console.warn("Architecture graph failed:", err.message);
+                    setArchGraph(null);
+                })
+                .finally(() => setArchLoading(false));
         } catch (err: any) {
             setError(err.message || "Analysis failed");
         } finally {
             setLoading(false);
         }
     };
+
 
     return (
         <div className="relative">
@@ -211,16 +252,67 @@ export default function AnalyzePage() {
                                     <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
                                         <Code className="w-4 h-4 text-orange-400" /> Tech Stack
                                     </h3>
-                                    <div className="flex flex-wrap gap-2">
-                                        {analysis.techStack.map((tech) => (
-                                            <Badge key={tech} className="text-xs border border-white/10 text-slate-300 bg-white/5">
-                                                {tech}
-                                            </Badge>
-                                        ))}
-                                        {analysis.techStack.length === 0 && (
-                                            <span className="text-xs text-slate-500">No stack detected</span>
-                                        )}
-                                    </div>
+                                    {analysis.techStack.length > 0 && (
+                                        <div className="flex flex-wrap gap-1.5 mb-4">
+                                            {analysis.techStack.map((tech) => (
+                                                <Badge key={tech} className="text-xs border border-white/10 text-slate-300 bg-white/5">
+                                                    {tech}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {analysis.languages && analysis.languages.length > 0 ? (
+                                        <div>
+                                            {/* Stacked color bar */}
+                                            <div className="flex h-3 rounded-full overflow-hidden mb-4">
+                                                {analysis.languages.map((lang, i) => (
+                                                    <motion.div
+                                                        key={lang.name}
+                                                        initial={{ width: 0 }}
+                                                        animate={{ width: `${lang.percentage}%` }}
+                                                        transition={{ delay: 0.2 + i * 0.05, duration: 0.6 }}
+                                                        className="h-full"
+                                                        style={{ backgroundColor: getLangColor(lang.name) }}
+                                                        title={`${lang.name}: ${lang.percentage}%`}
+                                                    />
+                                                ))}
+                                            </div>
+                                            {/* Individual language rows */}
+                                            <div className="space-y-2.5">
+                                                {analysis.languages.map((lang, i) => (
+                                                    <motion.div
+                                                        key={lang.name}
+                                                        initial={{ opacity: 0, x: -10 }}
+                                                        animate={{ opacity: 1, x: 0 }}
+                                                        transition={{ delay: 0.1 + i * 0.03 }}
+                                                        className="group/lang"
+                                                    >
+                                                        <div className="flex items-center justify-between mb-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: getLangColor(lang.name) }} />
+                                                                <span className="text-sm text-slate-300 font-medium">{lang.name}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-3">
+                                                                <span className="text-xs text-slate-500">{formatBytes(lang.bytes)}</span>
+                                                                <span className="text-sm text-white font-semibold w-12 text-right">{lang.percentage}%</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                                            <motion.div
+                                                                initial={{ width: 0 }}
+                                                                animate={{ width: `${lang.percentage}%` }}
+                                                                transition={{ delay: 0.3 + i * 0.05, duration: 0.8 }}
+                                                                className="h-full rounded-full group-hover/lang:brightness-125 transition-all"
+                                                                style={{ backgroundColor: getLangColor(lang.name) }}
+                                                            />
+                                                        </div>
+                                                    </motion.div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <span className="text-xs text-slate-500">No language data available</span>
+                                    )}
                                 </Card>
 
                                 {/* Community Health */}
@@ -297,7 +389,21 @@ export default function AnalyzePage() {
                                         Architecture Map
                                     </Badge>
                                 </div>
-                                <ArchVisualization graph={sampleGraph} />
+
+                                {/* Architecture graph loading */}
+                                {archLoading && (
+                                    <div className="w-full h-[200px] flex items-center justify-center bg-[#0a0a0a] rounded-2xl border border-white/5">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <div className="w-8 h-8 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin" />
+                                            <span className="text-xs text-slate-500">Generating architecture graph…</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Architecture graph ready */}
+                                {archGraph && !archLoading && (
+                                    <ArchVisualization graph={archGraph} />
+                                )}
                             </div>
 
                             <div className="flex justify-center mt-4">

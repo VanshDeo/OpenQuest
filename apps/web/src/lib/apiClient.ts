@@ -12,6 +12,7 @@ export interface RepoAnalysis {
     openIssues: number;
     contributorCount: number;
     techStack: string[];
+    languages: { name: string; bytes: number; percentage: number }[];
     purpose: string;
     difficultyScore: number;
     difficultyLabel: "Beginner" | "Intermediate" | "Advanced" | "Expert";
@@ -84,4 +85,78 @@ export function getUserLevel(): number {
 export function setUserLevel(experience: string): void {
     const level = LEVEL_MAP[experience] ?? 5;
     localStorage.setItem("openquest_user_level", String(level));
+}
+
+// ── Repo Indexing ─────────────────────────────────────────────────────────────
+
+export async function indexRepository(githubUrl: string): Promise<{ jobId: string }> {
+    const res = await fetch(`${API_BASE}/api/index`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ githubUrl }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+}
+
+export async function getIndexStatus(jobId: string): Promise<{
+    state: "waiting" | "active" | "completed" | "failed";
+    progress: number;
+    result?: { repoId: string; chunksWritten: number };
+}> {
+    const res = await fetch(`${API_BASE}/api/index/status/${jobId}`);
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+}
+
+// ── RAG Query ─────────────────────────────────────────────────────────────────
+
+export interface RAGQueryResult {
+    answer: string;
+    citations: Record<string, {
+        filePath: string;
+        startLine: number;
+        endLine: number;
+        symbolName?: string | null;
+    }>;
+    chunks: Array<{
+        filePath: string;
+        startLine: number;
+        endLine: number;
+        symbolName?: string | null;
+        score: number;
+        language: string;
+    }>;
+    meta: {
+        repoId: string;
+        query: string;
+        totalCandidates: number;
+        chunksUsed: number;
+        retrievalMs: number;
+    };
+}
+
+export async function queryCodebase(
+    repoId: string,
+    query: string
+): Promise<RAGQueryResult> {
+    const res = await fetch(`${API_BASE}/api/rag/query`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repoId, query }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+}
+
+// ── Architecture Graph ────────────────────────────────────────────────────
+
+export async function getArchitecture(repoId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/api/repo/architecture`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repoId }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
 }

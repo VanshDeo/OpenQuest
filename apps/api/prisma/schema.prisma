@@ -80,3 +80,18 @@ model CodeChunk {
   @@index([repoId])
   @@map("code_chunks")
 }
+
+model RepoArchitecture {
+  id          String   @id @default(cuid())
+  repoId      String   @unique
+  commitHash  String?
+  summary     String
+  techStack   String[]
+  entryPoints String[]
+  keyFiles    String[]
+  graph       Json
+  generatedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@map("repo_architectures")
+}
+
