@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import ArchVisualization from "@/components/visualization/ArchVisualization";
+import { sampleGraph } from "@/data/sampleGraph";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -280,6 +282,17 @@ export default function AnalyzePage() {
                                     Score considers codebase size, documentation quality, issue clarity, and average PR complexity.
                                 </p>
                             </Card>
+
+                            {/* ── Architecture Graph Visualization ── */}
+                            <div className="mt-8">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <Badge className="bg-orange-500/10 text-orange-400 border-orange-500/20">
+                                        <Zap className="w-3 h-3 mr-1" />
+                                        Architecture Map
+                                    </Badge>
+                                </div>
+                                <ArchVisualization graph={sampleGraph} />
+                            </div>
 
                             <div className="flex justify-center mt-4">
                                 <Button
